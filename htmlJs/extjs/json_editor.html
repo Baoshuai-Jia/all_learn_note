@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.0/jsoneditor.min.js"></script>
+<link rel="stylesheet" type="text/css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/extjs/6.2.0/classic/theme-triton/resources/theme-triton-all.css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/extjs/6.2.0/ext-all.js"></script>
+<script type="text/javascript">
+    Ext.define('Ext.ux.JSONEditorWrapper', {
+        extend: 'Ext.panel.Panel',
+        alias: 'widget.jsoneditorpanel',
+
+        requires: [
+            'Ext.toolbar.Toolbar'
+        ],
+
+        // 组件配置项
+        config: {
+            jsonData: {},
+            mode: 'tree', // tree, code, form, text, view
+            modes: ['tree', 'view', 'form', 'code', 'text'],
+            schema: null,
+            schemaRefs: null,
+            searchable: true,
+            indentation: 2,
+            readOnly: false
+        },
+
+        // CSS 依赖
+        initComponent: function () {
+            var me = this;
+
+            var textareaCon = {
+                readOnly: me.readOnly,
+                value: me.sourceCode,
+                anchor: '100% 100%'
+            };
+            if (!Ext.isEmpty(me.name)) {
+                textareaCon.name = me.name;
+            }
+            me.textarea = Ext.create('Ext.form.field.TextArea', textareaCon);
+
+            Ext.apply(me, {
+                layout: 'absolute',
+                items: [me.textarea]
+            });
+
+            // 确保已加载必要的CSS
+            if (!Ext.getHead().query('link[href*="jsoneditor.min.css"]').length) {
+                Ext.dom.Helper.append(Ext.getHead(), {
+                    tag: 'link',
+                    rel: 'stylesheet',
+                    type: 'text/css',
+                    href: 'https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.0/jsoneditor.min.css'
+                });
+            }
+
+            me.on('afterrender', me.initEditor, me);
+            // me.on('resize', me.onEditorResize, me);
+            // me.on('destroy', me.onEditorDestroy, me);
+
+            me.callParent(arguments);
+        },
+
+        // 创建模式切换按钮
+        createModeButtons: function () {
+            debugger
+            var me = this;
+            var items = [];
+
+            Ext.Array.forEach(me.modes, function (mode) {
+                items.push({
+                    text: Ext.String.capitalize(mode),
+                    mode: mode,
+                    handler: function (btn) {
+                        me.editor.setMode(btn.mode);
+                    }
+                });
+            });
+
+            return items;
+        },
+
+        // 初始化JSONEditor
+        initEditor: function () {
+            var me = this;
+
+            let text = me.textarea.getEl();
+            // 创建容器元素
+            me.editorContainer = Ext.dom.Helper.append(me.getEl(), text.dom, true);
+
+            // 工具栏配置
+            if (me.modes.length > 1) {
+                me.dockedItems = [{
+                    xtype: 'toolbar',
+                    dock: 'top',
+                    items: me.createModeButtons()
+                }];
+            }
+
+            // 移动容器元素到组件内部
+
+            let firstChild = me.body.dom.firstChild;
+            me.body.dom.insertBefore(me.editorContainer.dom, firstChild);
+            // me.body.dom.delete(firstChild);
+            var options = {
+                height: "100%",
+                width: "100%",
+                mode: me.mode,
+                modes: me.modes,
+                schema: me.schema,
+                schemaRefs: me.schemaRefs,
+                indentation: me.indentation,
+                searchable: me.searchable,
+                onChange: function () {
+                    me.fireEvent('change', me, me.editor.get());
+                },
+                onError: function (error) {
+                    me.fireEvent('error', me, error);
+                },
+                onModeChange: function (newMode, oldMode) {
+                    me.fireEvent('modechange', me, newMode, oldMode);
+                }
+            };
+
+            // 创建编辑器实例
+            me.editor = new JSONEditor(me.editorContainer.dom, options, me.jsonData);
+            debugger;
+
+
+            // jsoneditor-tree-inner
+
+            // 处理 code 模式的滚动
+            tex.dom.style.position = 'absolute';
+            tex.dom.style.top = '0';
+            tex.dom.style.bottom = '0';
+            tex.dom.style.left = '0';
+            tex.dom.style.right = '0';
+
+            tex.dom.style.overflow = 'auto';
+            tex.dom.height = '100%';
+
+            // // 设置只读状态
+            if (me.readOnly) {
+                me.setReadOnly(true);
+            }
+        },
+
+        // 组件调整大小时重置编辑器大小
+        onEditorResize: function () {
+            var me = this;
+            if (me.editor) {
+                // me.editor.resize();
+            }
+        },
+
+        // 销毁时清理
+        onEditorDestroy: function () {
+            var me = this;
+            if (me.editor) {
+                me.editor.destroy();
+                me.editor = null;
+            }
+            if (me.editorContainer) {
+                Ext.removeNode(me.editorContainer.dom);
+                me.editorContainer = null;
+            }
+        },
+
+        // 公共方法
+        get: function () {
+            return this.editor ? this.editor.get() : null;
+        },
+
+        set: function (json) {
+            if (this.editor) {
+                this.editor.set(json);
+            }
+        },
+
+        setMode: function (mode) {
+            if (this.editor && this.modes.indexOf(mode) !== -1) {
+                this.editor.setMode(mode);
+            }
+        },
+
+        setSchema: function (schema, schemaRefs) {
+            if (this.editor) {
+                this.editor.setSchema(schema, schemaRefs);
+            }
+        },
+
+        setReadOnly: function (readOnly) {
+            var me = this;
+            me.readOnly = readOnly;
+            if (me.editor) {
+                if (readOnly) {
+                    me.editor.setMode('tree');
+                } else {
+                    me.editor.setMode(me.config.mode);
+                }
+            }
+        },
+
+        // 扩展方法：格式化
+        format: function () {
+            if (this.editor) {
+                var json = this.editor.get();
+                this.editor.set(json);
+            }
+        },
+
+        // 扩展方法：展开所有节点
+        expandAll: function () {
+            if (this.editor && this.editor.expandAll) {
+                this.editor.expandAll();
+            }
+        },
+
+        // 扩展方法：折叠所有节点
+        collapseAll: function () {
+            if (this.editor && this.editor.collapseAll) {
+                this.editor.collapseAll();
+            }
+        }
+    });
+
+    // 创建编辑器实例
+    var editor = Ext.create('Ext.ux.JSONEditorWrapper', {
+        renderTo: Ext.getBody(),
+        width: 400,
+        height: 200,
+        jsonData: {
+            array: [1, 2, 3, 1234567890123, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1],
+            boolean: true,
+            null: null,
+            number: 123,
+            object: {"a": "b", "c": "d"},
+            string: 'Hello World'
+        },
+        modes: ['tree', 'code', 'form', 'text', 'view'],
+        mode: 'tree',
+        searchable: true,
+        listeners: {
+            change: function (editor, json) {
+                console.log('JSON changed:', json);
+            },
+            error: function (editor, error) {
+                console.log('Error:', error);
+            },
+            modechange: function (editor, newMode, oldMode) {
+                console.log('Mode changed from', oldMode, 'to', newMode);
+            }
+        }
+    });
+
+    // 使用方法示例
+    // editor.set({newData: 'test'});
+    // var data = editor.get();
+    // editor.setMode('tree');
+    // editor.setReadOnly(false);
+    // editor.expandAll();
+    // editor.expandAll();
+
+
+</script>
+</body>
+</html>
