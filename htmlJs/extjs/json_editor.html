@@ -5,6 +5,8 @@
     <title>Title</title>
 </head>
 <body>
+<link rel="stylesheet" type="text/css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.0/jsoneditor.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.0/jsoneditor.min.js"></script>
 <link rel="stylesheet" type="text/css"
       href="https://cdnjs.cloudflare.com/ajax/libs/extjs/6.2.0/classic/theme-triton/resources/theme-triton-all.css">
@@ -34,19 +36,11 @@
         initComponent: function () {
             var me = this;
 
-            var textareaCon = {
-                readOnly: me.readOnly,
-                value: me.sourceCode,
-                anchor: '100% 100%'
-            };
-            if (!Ext.isEmpty(me.name)) {
-                textareaCon.name = me.name;
-            }
-            me.textarea = Ext.create('Ext.form.field.TextArea', textareaCon);
-
             Ext.apply(me, {
-                layout: 'absolute',
-                items: [me.textarea]
+                layout: 'fit',
+                items: [{
+                    html: '<div id="jsoneditor" style="width: 400px; height: 100%;overflow: auto"></div>',
+                }]
             });
 
             // 确保已加载必要的CSS
@@ -68,7 +62,6 @@
 
         // 创建模式切换按钮
         createModeButtons: function () {
-            debugger
             var me = this;
             var items = [];
 
@@ -89,11 +82,26 @@
         initEditor: function () {
             var me = this;
 
-            let text = me.textarea.getEl();
-            // 创建容器元素
-            me.editorContainer = Ext.dom.Helper.append(me.getEl(), text.dom, true);
 
-            // 工具栏配置
+            // 创建容器元素
+            me.editorContainer = document.getElementById("jsoneditor");
+
+            const options = {}
+            const editor = new JSONEditor(me.editorContainer, options);
+
+
+            // set json
+            const initialJson = {
+                "Array": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0],
+                "Boolean": true,
+                "Null": null,
+                "Number": 123,
+                "Object": {"a": "b", "c": "d"},
+                "String": "Hello World"
+            }
+            editor.set(initialJson)
+
+            // // 工具栏配置
             if (me.modes.length > 1) {
                 me.dockedItems = [{
                     xtype: 'toolbar',
@@ -102,52 +110,34 @@
                 }];
             }
 
-            // 移动容器元素到组件内部
+            // var options = {
+            //     height: "100%",
+            //     width: "100%",
+            //     mode: me.mode,
+            //     modes: me.modes,
+            //     schema: me.schema,
+            //     schemaRefs: me.schemaRefs,
+            //     indentation: me.indentation,
+            //     searchable: me.searchable,
+            //     onChange: function () {
+            //         me.fireEvent('change', me, me.editor.get());
+            //     },
+            //     onError: function (error) {
+            //         me.fireEvent('error', me, error);
+            //     },
+            //     onModeChange: function (newMode, oldMode) {
+            //         me.fireEvent('modechange', me, newMode, oldMode);
+            //     }
+            // };
 
-            let firstChild = me.body.dom.firstChild;
-            me.body.dom.insertBefore(me.editorContainer.dom, firstChild);
-            // me.body.dom.delete(firstChild);
-            var options = {
-                height: "100%",
-                width: "100%",
-                mode: me.mode,
-                modes: me.modes,
-                schema: me.schema,
-                schemaRefs: me.schemaRefs,
-                indentation: me.indentation,
-                searchable: me.searchable,
-                onChange: function () {
-                    me.fireEvent('change', me, me.editor.get());
-                },
-                onError: function (error) {
-                    me.fireEvent('error', me, error);
-                },
-                onModeChange: function (newMode, oldMode) {
-                    me.fireEvent('modechange', me, newMode, oldMode);
-                }
-            };
-
-            // 创建编辑器实例
-            me.editor = new JSONEditor(me.editorContainer.dom, options, me.jsonData);
             debugger;
-
-
-            // jsoneditor-tree-inner
-
-            // 处理 code 模式的滚动
-            tex.dom.style.position = 'absolute';
-            tex.dom.style.top = '0';
-            tex.dom.style.bottom = '0';
-            tex.dom.style.left = '0';
-            tex.dom.style.right = '0';
-
-            tex.dom.style.overflow = 'auto';
-            tex.dom.height = '100%';
-
-            // // 设置只读状态
-            if (me.readOnly) {
-                me.setReadOnly(true);
-            }
+            // 创建编辑器实例
+            // me.editor = new JSONEditor(me.editorContainer, options, me.jsonData);
+            //
+            // // // 设置只读状态
+            // if (me.readOnly) {
+            //     me.setReadOnly(true);
+            // }
         },
 
         // 组件调整大小时重置编辑器大小
